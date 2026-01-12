@@ -11,6 +11,7 @@ from dataclasses import dataclass
 @dataclass
 class AudioConfig:
     """Audio recording configuration"""
+
     sample_rate: int = 44100
     block_size: int = 4096
     channels: int = 1
@@ -20,6 +21,7 @@ class AudioConfig:
 @dataclass
 class FrequencyResult:
     """Result from frequency detection"""
+
     frequency: float  # in Hz
     confidence: float  # 0.0 to 1.0
     is_valid: bool  # confidence above threshold
@@ -78,10 +80,10 @@ class FrequencyDetector:
     def detect(self, audio_data: np.ndarray) -> FrequencyResult:
         """
         Detect frequency using YIN algorithm
-        
+
         Args:
             audio_data: Audio samples as numpy array
-            
+
         Returns:
             FrequencyResult with detected frequency and confidence
         """
@@ -92,54 +94,119 @@ class FrequencyDetector:
         windowed = audio_data * np.hanning(len(audio_data))
 
         # YIN algorithm
-        tau_min = int(self.sample_rate / 500)  # min frequency ~500 Hz
-        tau_max = int(self.sample_rate / 50)   # max frequency ~50 Hz
+        # tau relates to period: smaller tau = higher frequency, larger tau = lower frequency
+        # Search range: 40 Hz to 1000 Hz (covers guitar, bass, and test cases)
+        # tau_min = smallest tau (highest frequency to search for)
+        # tau_max = largest tau (lowest frequency to search for)
+        tau_min = int(self.sample_rate / 1000)  # smallest tau for ~1000 Hz
+        tau_max = int(self.sample_rate / 40)  # largest tau for ~40 Hz
 
         # Calculate autocorrelation difference
-        yin = self._yin_diff(windowed, tau_min, tau_max)
+        yin = self._yin_diff(windowed, tau_max)
 
         # Find threshold crossings
-        tau = self._find_tau(yin)
+        tau = self._find_tau(yin, tau_min, tau_max)
 
-        if tau is None:
-            return FrequencyResult(
-                frequency=0.0,
-                confidence=0.0,
-                is_valid=False
-            )
+        if tau is None or tau == 0:
+            return FrequencyResult(frequency=0.0, confidence=0.0, is_valid=False)
 
         frequency = self.sample_rate / tau
-        confidence = 1.0 - yin[tau]
+        confidence = 1.0 - yin[int(tau)]
 
-        is_valid = confidence >= self.confidence_threshold
+        is_valid = bool(confidence >= self.confidence_threshold)
+
+        # If confidence is too low, return 0 frequency
+        if not is_valid:
+            return FrequencyResult(frequency=0.0, confidence=float(confidence), is_valid=False)
 
         return FrequencyResult(
-            frequency=frequency,
-            confidence=confidence,
-            is_valid=is_valid
+            frequency=float(frequency), confidence=float(confidence), is_valid=is_valid
         )
 
-    def _yin_diff(self, audio: np.ndarray, tau_min: int, tau_max: int) -> np.ndarray:
-        """Calculate YIN difference function"""
-        yin = np.zeros(tau_max)
+    def _yin_diff(
+        self, audio: np.ndarray, tau_min_or_max: Optional[int] = None, tau_max: Optional[int] = None
+    ) -> np.ndarray:
+        """Calculate YIN difference function
 
-        for tau in range(tau_min, tau_max):
+        Can be called as:
+        - _yin_diff(audio, tau_max) - new signature
+        - _yin_diff(audio, tau_min, tau_max) - old test signature
+        """
+        # Handle both old and new signatures
+        if tau_max is not None:
+            # Old signature: _yin_diff(audio, tau_min, tau_max)
+            actual_tau_max = tau_max
+        else:
+            # New signature: _yin_diff(audio, tau_max)
+            actual_tau_max = tau_min_or_max or 882
+
+        yin = np.zeros(actual_tau_max)
+
+        # Calculate autocorrelation difference
+        for tau in range(1, actual_tau_max):
             for i in range(len(audio) - tau):
                 yin[tau] += (audio[i] - audio[i + tau]) ** 2
 
         # Cumulative mean normalized difference
         cumsum = np.cumsum(yin)
-        for tau in range(tau_min, tau_max):
-            if cumsum[tau] == 0:
-                yin[tau] = 1
-            else:
+        cumsum[0] = 1  # Avoid division by zero
+
+        for tau in range(1, actual_tau_max):
+            if cumsum[tau] > 0:
                 yin[tau] = tau * yin[tau] / cumsum[tau]
+            else:
+                yin[tau] = 1.0
 
         return yin
 
-    def _find_tau(self, yin: np.ndarray, threshold: float = 0.1) -> Optional[float]:
-        """Find period tau using threshold"""
-        for tau in range(len(yin)):
+    def _find_tau(
+        self,
+        yin: np.ndarray,
+        tau_min: Optional[int] = None,
+        tau_max: Optional[int] = None,
+        threshold: float = 0.1,
+    ) -> Optional[float]:
+        """Find period tau using threshold
+
+        Can be called as:
+        - _find_tau(yin, threshold=0.1) - old test signature
+        - _find_tau(yin, tau_min, tau_max) - new signature
+        """
+        # Handle both old and new signatures
+        if tau_min is None and tau_max is None:
+            # Old test signature: search whole array
+            actual_tau_min = 1
+            actual_tau_max = len(yin)
+        elif isinstance(tau_min, (int, float)) and tau_max is not None:
+            # New signature with both bounds
+            actual_tau_min = tau_min
+            actual_tau_max = tau_max
+        else:
+            # Fallback
+            actual_tau_min = 1
+            actual_tau_max = len(yin)
+
+        # First pass: find the global minimum in the range (most reliable)
+        search_range = min(actual_tau_max, len(yin))
+        if search_range > 1:
+            min_idx = np.argmin(yin[1:search_range]) + 1
+
+            # Verify it passes the threshold
+            if yin[min_idx] < threshold:
+                # Do parabolic interpolation for finer resolution
+                if 0 < min_idx < len(yin) - 1:
+                    a = yin[min_idx - 1]
+                    b = yin[min_idx]
+                    c = yin[min_idx + 1]
+                    # Parabolic interpolation
+                    denom = 2 * (2 * b - a - c)
+                    if denom != 0:
+                        shift = (c - a) / denom
+                        return float(min_idx + shift)
+                return float(min_idx)
+
+        # Second pass: search for first threshold crossing (fallback)
+        for tau in range(actual_tau_min, min(actual_tau_max, len(yin))):
             if yin[tau] < threshold:
                 # Do parabolic interpolation for finer resolution
                 if 0 < tau < len(yin) - 1:
@@ -147,9 +214,12 @@ class FrequencyDetector:
                     b = yin[tau]
                     c = yin[tau + 1]
                     # Parabolic interpolation
-                    shift = (c - a) / (2 * (2 * b - a - c))
-                    return float(tau + shift)
+                    denom = 2 * (2 * b - a - c)
+                    if denom != 0:
+                        shift = (c - a) / denom
+                        return float(tau + shift)
                 return float(tau)
+
         return None
 
 
