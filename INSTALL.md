@@ -9,37 +9,48 @@
 
 ## Quick Start
 
-### 1. Install Dependencies
+### Option A: Using UV (Recommended) ⚡
 
-#### Option A: Using pip (Recommended)
+UV is a fast, modern Python package manager:
+
 ```bash
-pip install -r requirements.txt
+# 1. Install UV
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# On macOS with Homebrew:
+brew install uv
+
+# 2. Run the tuner (dependencies are installed automatically)
+uv run tunertui
 ```
 
-#### Option B: Using pyproject.toml
+**That's it!** Dependencies are installed automatically. See [UV_AND_RUFF.md](UV_AND_RUFF.md) for more features.
+
+### Option B: Using pip (Traditional)
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the application
+tunertui
+```
+
+### Option C: Using pyproject.toml
+
 ```bash
 pip install -e .
+tunertui
 ```
 
-#### Option C: Manual Installation
+### Option D: Manual Installation
+
 ```bash
 pip install textual>=0.30.0
 pip install numpy>=1.23.0
 pip install sounddevice>=0.4.5
 pip install scipy>=1.9.0
-```
-
-### 2. Run the Application
-
-```bash
-# Using the installed command
 tunertui
-
-# Or using Python directly
-python3 -m tunertui.cli
-
-# Or from the source directory
-python3 tunertui/cli.py
 ```
 
 ## Platform-Specific Instructions

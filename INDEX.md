@@ -7,6 +7,7 @@ Quick navigation to all project resources.
 - **[PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)** - Overview of what was built
 - **[QUICKSTART.md](QUICKSTART.md)** - Get running in 5 minutes
 - **[INSTALL.md](INSTALL.md)** - Detailed installation for all platforms
+- **[UV_AND_RUFF.md](UV_AND_RUFF.md)** - Using UV and Ruff for fast development
 
 ## 📚 Main Documentation
 
@@ -57,17 +58,23 @@ Quick navigation to all project resources.
 **...understand the project**
 → Start with [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)
 
-**...install and run it**
-→ Follow [QUICKSTART.md](QUICKSTART.md)
+**...install and run it quickly**
+→ Follow [QUICKSTART.md](QUICKSTART.md) (UV recommended!)
 
 **...handle installation issues**
 → See [INSTALL.md](INSTALL.md)
+
+**...use UV and Ruff for development**
+→ Read [UV_AND_RUFF.md](UV_AND_RUFF.md)
 
 **...learn how it works**
 → Read [ARCHITECTURE.md](ARCHITECTURE.md)
 
 **...try it without audio hardware**
-→ Run `python3 examples/demo_notes.py`
+→ Run `uv run python examples/demo_notes.py`
+
+**...check code quality with Ruff**
+→ Run `uv run ruff check tunertui/`
 
 **...understand the YIN algorithm**
 → See comments in [tunertui/audio.py](tunertui/audio.py)
@@ -89,25 +96,53 @@ Quick navigation to all project resources.
 - **Documentation**: 31 KB across 5 files
 - **Instrument Presets**: 9 (Guitar, Bass, Ukulele, Banjo, Mandolin, Violin)
 
-## 🔧 Development
+## 🔧 Development with UV and Ruff
+
+### Recommended (UV)
+
+```bash
+# Install UV (once)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Run the app
+uv run tunertui
+
+# Run demo
+uv run python examples/demo_notes.py
+
+# Check code quality with Ruff
+uv run ruff check tunertui/
+
+# Fix code issues
+uv run ruff check --fix tunertui/
+
+# Run type checking
+uv run mypy tunertui/
+
+# Run tests
+uv run pytest
+```
+
+### Traditional (pip)
 
 ```bash
 # Install for development
 pip install -e ".[dev]"
 
-# Run demo (no audio needed)
+# Run demo
 python3 examples/demo_notes.py
 
 # Run the app
 python3 -m tunertui.cli
 
-# Run type checking
-mypy tunertui/
-
-# Format code
-black tunertui/
+# Check code quality
 ruff check tunertui/
+
+# Type checking
+mypy tunertui/
 ```
+
+See [UV_AND_RUFF.md](UV_AND_RUFF.md) for more details.
 
 ## 📋 File Structure
 

@@ -2,17 +2,53 @@
 
 ## Installation
 
-### 1. Install Dependencies
+### Option A: Using UV (Recommended) ⚡
+
+Fast, reliable Python package management:
 
 ```bash
-# Option A: Using pip directly
+# Install UV
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Run the tuner (dependencies installed automatically)
+uv run tunertui
+```
+
+That's it! UV handles everything automatically.
+
+### Option B: Using pip directly
+
+```bash
 pip install -r requirements.txt
+```
 
-# Option B: Using the pyproject.toml
+### Option C: Using the pyproject.toml
+
+```bash
 pip install -e .
+```
 
-# Option C: Manual installation
-pip install textual>=0.30.0 numpy>=1.23.0 sounddevice>=0.4.5 scipy>=1.9.0
+## Run the Tuner
+
+### With UV (Fastest Way)
+```bash
+# Run directly
+uv run tunertui
+
+# Run with a specific Python version
+uv run --python 3.10 tunertui
+```
+
+### With Traditional Python
+```bash
+# Using the CLI
+tunertui
+
+# Or directly with Python
+python3 -m tunertui.cli
+
+# Run examples
+python3 examples/demo_notes.py  # Test without audio
 ```
 
 ### 2. Run the Tuner

@@ -9,7 +9,7 @@ description = "A TUI-based instrument tuner using Python and Textual"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
-authors = [{name = "TunerTUI Contributors"}]
+authors = [{name = "Mark Mercado <mamercad@gmail.com>"}]
 
 dependencies = [
     "textual>=0.30.0",
@@ -22,8 +22,7 @@ dependencies = [
 dev = [
     "pytest>=7.0",
     "pytest-asyncio>=0.21.0",
-    "black>=23.0.0",
-    "ruff>=0.1.0",
+    "ruff>=0.3.0",
     "mypy>=1.0.0",
 ]
 
@@ -33,14 +32,23 @@ tunertui = "tunertui.cli:main"
 [tool.setuptools]
 packages = ["tunertui"]
 
-[tool.black]
-line-length = 100
-target-version = ['py39']
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21.0",
+    "ruff>=0.3.0",
+    "mypy>=1.0.0",
+]
 
 [tool.ruff]
 line-length = 100
 target-version = "py39"
+
+[tool.ruff.lint]
 select = ["E", "F", "W", "I"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["tunertui"]
 
 [tool.mypy]
 python_version = "3.9"
